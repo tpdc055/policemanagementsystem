@@ -83,12 +83,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
     <div className={`flex flex-col h-full ${mobile ? "p-4" : ""}`}>
       {/* Logo */}
       <div className="flex items-center gap-3 p-6 border-b">
-        <div className="w-12 h-12 bg-blue-900 rounded-lg flex items-center justify-center shadow-sm">
-          <Shield className="w-8 h-8 text-white" />
+        <div className="w-12 h-12 bg-blue-900 rounded-lg flex items-center justify-center shadow-sm overflow-hidden">
+          <img
+            src="/png-police-badge.png"
+            alt="PNG Police Badge"
+            className="w-10 h-10 object-contain"
+          />
         </div>
         <div>
-          <h1 className="font-bold text-lg">PNG Police</h1>
-          <p className="text-sm text-gray-600">Management System</p>
+          <h1 className="font-bold text-lg">Royal PNG Constabulary</h1>
+          <p className="text-sm text-gray-600">Police Management System</p>
         </div>
       </div>
 
