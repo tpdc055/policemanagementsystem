@@ -26,7 +26,8 @@ import {
   BookOpen,
   Lock,
   Scale,
-  History
+  History,
+  Eye
 } from "lucide-react"
 import type { User } from "@/types/user"
 
@@ -46,6 +47,7 @@ const navigation = [
   { name: "Evidence", href: "/evidence", icon: Database },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Criminals", href: "/criminals", icon: Shield },
+  { name: "Biometric ID", href: "/biometric-demo", icon: Eye },
 ]
 
 export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element {
