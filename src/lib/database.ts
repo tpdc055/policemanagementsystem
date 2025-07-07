@@ -305,4 +305,24 @@ export class DatabaseService {
     const nextNumber = Math.floor(Math.random() * 9999) + 1
     return `EVD-${year}-${nextNumber.toString().padStart(4, '0')}`
   }
+
+  // Additional methods for incident creation (mock implementations)
+  static async createPersonInvolved(data: any): Promise<any> {
+    console.log('Mock: Creating person involved:', data)
+    return { id: Math.random().toString(36).substr(2, 9), ...data }
+  }
+
+  static async createVehicleInvolved(data: any): Promise<any> {
+    console.log('Mock: Creating vehicle involved:', data)
+    return { id: Math.random().toString(36).substr(2, 9), ...data }
+  }
+
+  static async uploadFile(blob: Blob, folder: string, category: string, relatedId: string): Promise<string> {
+    console.log('Mock: Uploading file:', { folder, category, relatedId })
+    return `/uploads/${Math.random().toString(36).substr(2, 9)}-${blob.name || 'file'}`
+  }
+
+  static async logAction(userId: string, action: string, resource: string, resourceId: string, oldValues: any, newValues: any): Promise<void> {
+    console.log('Mock: Logging action:', { userId, action, resource, resourceId, oldValues, newValues })
+  }
 }

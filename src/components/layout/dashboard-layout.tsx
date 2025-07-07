@@ -26,8 +26,7 @@ import {
   BookOpen,
   Lock,
   Scale,
-  History,
-  Eye
+  History
 } from "lucide-react"
 import type { User } from "@/types/user"
 
@@ -47,7 +46,6 @@ const navigation = [
   { name: "Evidence", href: "/evidence", icon: Database },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Criminals", href: "/criminals", icon: Shield },
-  { name: "Biometric ID", href: "/biometric-demo", icon: Eye },
 ]
 
 export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element {
@@ -85,21 +83,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
     <div className={`flex flex-col h-full ${mobile ? "p-4" : ""}`}>
       {/* Logo */}
       <div className="flex items-center gap-3 p-6 border-b">
-        <div className="w-12 h-12 bg-blue-900 rounded-lg flex items-center justify-center shadow-sm overflow-hidden">
-          <img
-            src="/png-police-badge.png"
-            alt="PNG Police Badge"
-            className="w-10 h-10 object-contain"
-          />
+        <div className="w-12 h-12 bg-blue-900 rounded-lg flex items-center justify-center shadow-sm">
+          <Shield className="w-8 h-8 text-white" />
         </div>
         <div>
-          <h1 className="font-bold text-lg">Royal PNG Constabulary</h1>
+          <h1 className="font-bold text-lg">Royal PNG</h1>
+          <h2 className="font-bold text-lg">Constabulary</h2>
           <p className="text-sm text-gray-600">Police Management System</p>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      {/* Navigation - with flex-1 to take available space */}
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
           return (
@@ -120,8 +115,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
         })}
       </nav>
 
-      {/* User Info */}
-      <div className="p-4 border-t">
+      {/* User Info Section - Fixed at bottom */}
+      <div className="p-4 border-t bg-gray-50">
         <div className="flex items-center gap-3 mb-3">
           <Avatar className="w-8 h-8">
             <AvatarFallback className="bg-blue-100 text-blue-700">
@@ -133,17 +128,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
             <p className="text-xs text-gray-600">Badge #{user.badgeNumber}</p>
           </div>
         </div>
-        <Badge variant="outline" className="text-xs mb-3">
+        <Badge variant="outline" className="text-xs mb-3 w-full justify-center">
           {user.role}
         </Badge>
         <Button
           variant="outline"
           size="sm"
           onClick={handleLogout}
-          className="w-full"
+          className="w-full bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
         >
           <LogOut className="w-4 h-4 mr-2" />
-          Logout
+          Sign Out
         </Button>
       </div>
     </div>
@@ -184,6 +179,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
                 {user.name?.split(" ").map(n => n[0]).join("") || "U"}
               </AvatarFallback>
             </Avatar>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 

@@ -1,12 +1,23 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "next build",
-  "outputDirectory": ".next",
-  "installCommand": "bun install",
-  "devCommand": "bun run dev",
-  "regions": ["syd1"],
+  "version": 2,
+  "name": "png-police-system",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
   "env": {
-    "DISABLE_ESLINT_PLUGIN": "true",
-    "ESLINT_NO_DEV_ERRORS": "true"
+    "POSTGRES_URL": "@postgres_url",
+    "DATABASE_URL": "@database_url",
+    "NEXT_PUBLIC_CYBERCRIME_API_URL": "@cybercrime_api_url",
+    "NEXT_PUBLIC_CYBERCRIME_SYSTEM_URL": "@cybercrime_system_url",
+    "CYBERCRIME_API_KEY": "@cybercrime_api_key",
+    "CYBERCRIME_WEBHOOK_SECRET": "@cybercrime_webhook_secret"
+  },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
   }
 }

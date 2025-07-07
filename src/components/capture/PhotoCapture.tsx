@@ -88,7 +88,7 @@ export default function PhotoCapture({
   const [flashEnabled, setFlashEnabled] = useState(false)
   const [zoom, setZoom] = useState(1)
   const [stream, setStream] = useState<MediaStream | null>(null)
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | undefined>(undefined)
   const [deviceInfo, setDeviceInfo] = useState('')
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -122,12 +122,11 @@ export default function PhotoCapture({
   // Start camera
   const startCamera = useCallback(async () => {
     try {
-      const constraints = {
+      const constraints: MediaStreamConstraints = {
         video: {
           facingMode,
           width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          zoom: { ideal: zoom }
+          height: { ideal: 1080 }
         },
         audio: false
       }
@@ -145,12 +144,14 @@ export default function PhotoCapture({
       console.error('Error starting camera:', error)
       alert('Unable to access camera. Please check permissions.')
     }
-  }, [facingMode, zoom])
+  }, [facingMode])
 
   // Stop camera
   const stopCamera = useCallback(() => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop())
+      for (const track of stream.getTracks()) {
+        track.stop()
+      }
       setStream(null)
     }
     setIsCapturing(false)
@@ -161,9 +162,30 @@ export default function PhotoCapture({
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user')
     if (isCapturing) {
       stopCamera()
-      setTimeout(() => startCamera(), 100)
+      setTimeout(() => {
+        startCamera()
+      }, 100)
     }
   }, [isCapturing, stopCamera, startCamera])
+
+  // Calculate quality score based on resolution and file size
+  const calculateQualityScore = useCallback((width: number, height: number, fileSize: number): number => {
+    const pixels = width * height
+    const bitsPerPixel = (fileSize * 8) / pixels
+
+    // Score based on resolution and compression
+    let score = 0
+    if (pixels >= 2073600) score += 40 // 1920x1080 or higher
+    else if (pixels >= 921600) score += 30 // 1280x720
+    else if (pixels >= 307200) score += 20 // 640x480
+    else score += 10
+
+    if (bitsPerPixel >= 12) score += 30 // High quality
+    else if (bitsPerPixel >= 8) score += 20 // Medium quality
+    else score += 10 // Low quality
+
+    return Math.min(score, 100)
+  }, [])
 
   // Capture photo
   const capturePhoto = useCallback(async () => {
@@ -204,7 +226,7 @@ export default function PhotoCapture({
     canvas.toBlob(async (blob) => {
       if (!blob) return
 
-      const photoId = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const photoId = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
       const url = URL.createObjectURL(blob)
 
       // Calculate file hash (simplified)
@@ -254,36 +276,17 @@ export default function PhotoCapture({
         stopCamera()
       }
     }, 'image/jpeg', 0.9)
-  }, [flashEnabled, zoom, facingMode, location, deviceInfo, category, photographer, allowMultiple, maxPhotos, photos.length, stopCamera])
-
-  // Calculate quality score based on resolution and file size
-  const calculateQualityScore = (width: number, height: number, fileSize: number): number => {
-    const pixels = width * height
-    const bitsPerPixel = (fileSize * 8) / pixels
-
-    // Score based on resolution and compression
-    let score = 0
-    if (pixels >= 2073600) score += 40 // 1920x1080 or higher
-    else if (pixels >= 921600) score += 30 // 1280x720
-    else if (pixels >= 307200) score += 20 // 640x480
-    else score += 10
-
-    if (bitsPerPixel >= 12) score += 30 // High quality
-    else if (bitsPerPixel >= 8) score += 20 // Medium quality
-    else score += 10 // Low quality
-
-    return Math.min(score, 100)
-  }
+  }, [flashEnabled, zoom, facingMode, location, deviceInfo, category, photographer, allowMultiple, maxPhotos, photos.length, stopCamera, calculateQualityScore])
 
   // Handle file upload
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files) return
 
-    Array.from(files).forEach(async (file) => {
-      if (!file.type.startsWith('image/')) return
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) continue
 
-      const photoId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const photoId = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
       const url = URL.createObjectURL(file)
 
       // Get image dimensions
@@ -331,7 +334,7 @@ export default function PhotoCapture({
         setPhotos(prev => [...prev, newPhoto])
       }
       img.src = url
-    })
+    }
   }, [location, deviceInfo, category, photographer, calculateQualityScore])
 
   // Delete photo
@@ -373,7 +376,9 @@ export default function PhotoCapture({
   useEffect(() => {
     return () => {
       stopCamera()
-      photos.forEach(photo => URL.revokeObjectURL(photo.url))
+      for (const photo of photos) {
+        URL.revokeObjectURL(photo.url)
+      }
     }
   }, [stopCamera, photos])
 

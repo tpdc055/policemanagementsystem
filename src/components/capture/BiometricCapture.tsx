@@ -30,9 +30,36 @@ import {
   MapPin
 } from 'lucide-react'
 
+type FingerPosition = 'thumb' | 'index' | 'middle' | 'ring' | 'little'
+type HandPosition = 'left' | 'right'
+type BiometricType = 'fingerprint' | 'facial' | 'iris' | 'voice' | 'signature'
+type VerificationResult = 'match' | 'no_match' | 'error'
+
+interface VerificationAttempt {
+  timestamp: string
+  result: VerificationResult
+  score: number
+  operator: string
+}
+
+interface SubjectInfo {
+  name?: string
+  id_number?: string
+  finger_position?: FingerPosition
+  hand: HandPosition
+}
+
+interface BiometricMetadata {
+  dpi: number
+  image_dimensions: { width: number; height: number }
+  compression: string
+  encryption: boolean
+  hash: string
+}
+
 interface BiometricData {
   id: string
-  type: 'fingerprint' | 'facial' | 'iris' | 'voice' | 'signature'
+  type: BiometricType
   data: string // Base64 encoded biometric template
   rawImage?: string // Base64 encoded original image
   quality_score: number
@@ -43,25 +70,9 @@ interface BiometricData {
   capture_timestamp: string
   capture_location?: { latitude: number; longitude: number }
   operator: string
-  subject_info: {
-    name?: string
-    id_number?: string
-    finger_position?: 'thumb' | 'index' | 'middle' | 'ring' | 'little'
-    hand: 'left' | 'right'
-  }
-  verification_attempts?: Array<{
-    timestamp: string
-    result: 'match' | 'no_match' | 'error'
-    score: number
-    operator: string
-  }>
-  metadata: {
-    dpi: number
-    image_dimensions: { width: number; height: number }
-    compression: string
-    encryption: boolean
-    hash: string
-  }
+  subject_info: SubjectInfo
+  verification_attempts?: VerificationAttempt[]
+  metadata: BiometricMetadata
 }
 
 interface BiometricCaptureProps {
@@ -70,7 +81,7 @@ interface BiometricCaptureProps {
   subjectId?: string
   operator: string
   incidentNumber?: string
-  allowedTypes?: Array<'fingerprint' | 'facial' | 'iris' | 'voice' | 'signature'>
+  allowedTypes?: BiometricType[]
   required?: boolean
 }
 
@@ -84,15 +95,15 @@ export default function BiometricCapture({
   required = false
 }: BiometricCaptureProps) {
   const [capturedBiometrics, setCapturedBiometrics] = useState<BiometricData[]>([])
-  const [currentCapture, setCurrentCapture] = useState<'fingerprint' | 'facial' | 'iris' | 'voice' | 'signature' | null>(null)
+  const [currentCapture, setCurrentCapture] = useState<BiometricType | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
-  const [fingerprintPosition, setFingerprintPosition] = useState<'thumb' | 'index' | 'middle' | 'ring' | 'little'>('index')
-  const [handPosition, setHandPosition] = useState<'left' | 'right'>('right')
+  const [fingerprintPosition, setFingerprintPosition] = useState<FingerPosition>('index')
+  const [handPosition, setHandPosition] = useState<HandPosition>('right')
   const [captureProgress, setCaptureProgress] = useState(0)
   const [qualityScore, setQualityScore] = useState(0)
   const [verificationMode, setVerificationMode] = useState(false)
   const [verificationResult, setVerificationResult] = useState<'match' | 'no_match' | 'pending' | null>(null)
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | undefined>(undefined)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -113,6 +124,73 @@ export default function BiometricCapture({
       )
     }
   }, [])
+
+  // Generate simulated biometric template
+  const generateSimulatedTemplate = useCallback((type: string): string => {
+    // Generate a realistic looking base64 encoded template
+    const templateSize = type === 'fingerprint' ? 1024 : 2048
+    const bytes = new Uint8Array(templateSize)
+
+    for (let i = 0; i < templateSize; i++) {
+      bytes[i] = Math.floor(Math.random() * 256)
+    }
+
+    return btoa(String.fromCharCode(...bytes))
+  }, [])
+
+  // Generate hash
+  const generateHash = useCallback((data: string): string => {
+    // Simple hash simulation
+    let hash = 0
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0')
+  }, [])
+
+  // Generate biometric data (simulated)
+  const generateBiometricData = useCallback((
+    type: BiometricType,
+    quality: number,
+    rawImage?: string
+  ) => {
+    // Generate simulated biometric template
+    const template = generateSimulatedTemplate(type)
+    const hash = generateHash(template)
+
+    const biometricData: BiometricData = {
+      id: `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      data: template,
+      rawImage,
+      quality_score: Math.round(quality),
+      confidence_level: Math.round(quality * 0.9 + Math.random() * 10),
+      extraction_algorithm: type === 'fingerprint' ? 'Minutiae-based' : 'Deep Neural Network',
+      template_format: type === 'fingerprint' ? 'ISO/IEC 19794-2' : 'Proprietary',
+      capture_device: 'PNG Police Digital Scanner v2.0',
+      capture_timestamp: new Date().toISOString(),
+      capture_location: location,
+      operator,
+      subject_info: {
+        name: subjectName,
+        id_number: subjectId,
+        finger_position: type === 'fingerprint' ? fingerprintPosition : undefined,
+        hand: handPosition
+      },
+      verification_attempts: [],
+      metadata: {
+        dpi: type === 'fingerprint' ? 500 : 300,
+        image_dimensions: { width: 512, height: 512 },
+        compression: 'JPEG2000',
+        encryption: true,
+        hash
+      }
+    }
+
+    setCapturedBiometrics(prev => [...prev, biometricData])
+  }, [location, operator, subjectName, subjectId, fingerprintPosition, handPosition, generateSimulatedTemplate, generateHash])
 
   // Start fingerprint capture simulation
   const startFingerprintCapture = useCallback(async () => {
@@ -140,7 +218,7 @@ export default function BiometricCapture({
         return newProgress
       })
     }, 200)
-  }, [])
+  }, [generateBiometricData])
 
   // Start facial recognition capture
   const startFacialCapture = useCallback(async () => {
@@ -208,74 +286,7 @@ export default function BiometricCapture({
         return newProgress
       })
     }, 150)
-  }, [])
-
-  // Generate biometric data (simulated)
-  const generateBiometricData = useCallback((
-    type: 'fingerprint' | 'facial' | 'iris' | 'voice' | 'signature',
-    quality: number,
-    rawImage?: string
-  ) => {
-    // Generate simulated biometric template
-    const template = generateSimulatedTemplate(type)
-    const hash = generateHash(template)
-
-    const biometricData: BiometricData = {
-      id: `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      data: template,
-      rawImage,
-      quality_score: Math.round(quality),
-      confidence_level: Math.round(quality * 0.9 + Math.random() * 10),
-      extraction_algorithm: type === 'fingerprint' ? 'Minutiae-based' : 'Deep Neural Network',
-      template_format: type === 'fingerprint' ? 'ISO/IEC 19794-2' : 'Proprietary',
-      capture_device: 'PNG Police Digital Scanner v2.0',
-      capture_timestamp: new Date().toISOString(),
-      capture_location: location,
-      operator,
-      subject_info: {
-        name: subjectName,
-        id_number: subjectId,
-        finger_position: type === 'fingerprint' ? fingerprintPosition : undefined,
-        hand: handPosition
-      },
-      verification_attempts: [],
-      metadata: {
-        dpi: type === 'fingerprint' ? 500 : 300,
-        image_dimensions: { width: 512, height: 512 },
-        compression: 'JPEG2000',
-        encryption: true,
-        hash
-      }
-    }
-
-    setCapturedBiometrics(prev => [...prev, biometricData])
-  }, [location, operator, subjectName, subjectId, fingerprintPosition, handPosition])
-
-  // Generate simulated biometric template
-  const generateSimulatedTemplate = (type: string): string => {
-    // Generate a realistic looking base64 encoded template
-    const templateSize = type === 'fingerprint' ? 1024 : 2048
-    const bytes = new Uint8Array(templateSize)
-
-    for (let i = 0; i < templateSize; i++) {
-      bytes[i] = Math.floor(Math.random() * 256)
-    }
-
-    return btoa(String.fromCharCode(...bytes))
-  }
-
-  // Generate hash
-  const generateHash = (data: string): string => {
-    // Simple hash simulation
-    let hash = 0
-    for (let i = 0; i < data.length; i++) {
-      const char = data.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
-      hash = hash & hash // Convert to 32-bit integer
-    }
-    return Math.abs(hash).toString(16).padStart(8, '0')
-  }
+  }, [generateBiometricData])
 
   // Verify biometric
   const verifyBiometric = useCallback(async (biometricId: string) => {
@@ -359,7 +370,7 @@ export default function BiometricCapture({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Finger Position</Label>
-                    <Select value={fingerprintPosition} onValueChange={(value: any) => setFingerprintPosition(value)}>
+                    <Select value={fingerprintPosition} onValueChange={(value: FingerPosition) => setFingerprintPosition(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -374,7 +385,7 @@ export default function BiometricCapture({
                   </div>
                   <div>
                     <Label>Hand</Label>
-                    <Select value={handPosition} onValueChange={(value: any) => setHandPosition(value)}>
+                    <Select value={handPosition} onValueChange={(value: HandPosition) => setHandPosition(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

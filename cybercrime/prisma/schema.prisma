@@ -1,0 +1,562 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  password    String
+  role        UserRole
+  department  String
+  phoneNumber String?
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  resetToken  String?  // Password reset token
+  resetTokenExpiry DateTime? // Token expiry time
+  notificationPreferences Json? // User notification preferences
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  casesCreated     CyberCase[]         @relation("CaseCreatedBy")
+  casesAssigned    CyberCase[]         @relation("CaseAssignedTo")
+  investigations   Investigation[]
+  legalRequests    LegalRequest[]
+  evidenceUploads  Evidence[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  accounts         Account[]
+  sessions         Session[]
+  savedSearches    SavedSearch[]
+  searchAnalytics  SearchAnalytics[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Case Management
+model CyberCase {
+  id                    String       @id @default(cuid())
+  caseId                String       @unique // CYBER-2024-001
+  title                 String
+  description           String       @db.Text
+  offenseType           String
+  priority              Priority
+  status                CaseStatus   @default(OPEN)
+  parentCaseId          String?
+  incidentDate          DateTime
+  reportedDate          DateTime
+  location              String
+  estimatedLoss         Decimal?
+  currency              String       @default("PGK")
+  resolutionDate        DateTime?
+  resolutionNotes       String?      @db.Text
+  createdById           String
+  assignedToId          String?
+  isActive              Boolean      @default(true)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Relations
+  createdBy             User               @relation("CaseCreatedBy", fields: [createdById], references: [id])
+  assignedTo            User?              @relation("CaseAssignedTo", fields: [assignedToId], references: [id])
+  suspects              Suspect[]
+  victims               Victim[]
+  evidence              Evidence[]
+  investigations        Investigation[]
+  socialMediaProfiles   SocialMediaProfile[]
+  legalRequests         LegalRequest[]
+  notifications         Notification[]
+  caseUpdates           CaseUpdate[]
+
+  @@map("cyber_cases")
+}
+
+model CaseUpdate {
+  id        String   @id @default(cuid())
+  caseId    String
+  title     String
+  content   String   @db.Text
+  updateType String  // status_change, evidence_added, etc.
+  createdAt DateTime @default(now())
+
+  case      CyberCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("case_updates")
+}
+
+// People Management
+model Suspect {
+  id                  String    @id @default(cuid())
+  name                String
+  alias               String?
+  age                 Int?
+  gender              Gender?
+  phoneNumber         String?
+  email               String?
+  address             String?   @db.Text
+  knownAssociates     String?   @db.Text
+  criminalHistory     String?   @db.Text
+  status              String    @default("UNDER_INVESTIGATION") // ARRESTED, CHARGED, etc.
+  riskLevel           String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  description         String?   @db.Text
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  cases               CyberCase[]
+
+  @@map("suspects")
+}
+
+model Victim {
+  id                String    @id @default(cuid())
+  name              String
+  age               Int?
+  gender            Gender?
+  phoneNumber       String?
+  email             String?
+  address           String?   @db.Text
+  occupation        String?
+  vulnerabilities   String?   @db.Text // factors that made them vulnerable
+  supportProvided   String?   @db.Text
+  recoveredAmount   Decimal?
+  needsSupport      Boolean   @default(false)
+  contactPreference String?   // phone, email, in-person
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  contactInfo       String
+
+  // Relations
+  cases             CyberCase[]
+
+  @@map("victims")
+}
+
+// Evidence Management
+model Evidence {
+  id              String       @id @default(cuid())
+  caseId          String
+  title           String
+  description     String       @db.Text
+  evidenceType    EvidenceType
+  filePath        String?
+  fileName        String?
+  fileSize        Int?
+  mimeType        String?
+  hash            String?      // file hash for integrity
+  source          String       // where evidence came from
+  collectedBy     String       // user who collected it
+  collectedAt     DateTime
+  chainOfCustody  Json?        // array of custody transfers
+  isSecure        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  filename        String
+  type            String
+  size            Int
+
+  // Relations
+  case            CyberCase    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploadedBy      User         @relation(fields: [collectedBy], references: [id])
+
+  @@map("evidence")
+}
+
+// Investigation Management
+model Investigation {
+  id                String                @id @default(cuid())
+  caseId            String
+  investigatorId    String
+  title             String
+  description       String                @db.Text
+  status            InvestigationStatus   @default(ACTIVE)
+  priority          Priority
+  startDate         DateTime
+  endDate           DateTime?
+  findings          String?               @db.Text
+  nextSteps         String?               @db.Text
+  hoursSpent        Decimal?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relations
+  case              CyberCase             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  investigator      User                  @relation(fields: [investigatorId], references: [id])
+  tasks             InvestigationTask[]
+
+  @@map("investigations")
+}
+
+model InvestigationTask {
+  id              String                @id @default(cuid())
+  investigationId String
+  title           String
+  description     String?               @db.Text
+  status          TaskStatus            @default(PENDING)
+  priority        Priority
+  dueDate         DateTime?
+  completedAt     DateTime?
+  assignedTo      String?
+  notes           String?               @db.Text
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  // Relations
+  investigation   Investigation         @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  @@map("investigation_tasks")
+}
+
+// Social Media Management
+model SocialMediaProfile {
+  id                    String                  @id @default(cuid())
+  caseId                String
+  platform              String                  // Facebook, Instagram, etc.
+  profileName           String
+  profileUrl            String
+  status                SocialMediaStatus       @default(ACTIVE_MONITORING)
+  riskLevel             RiskLevel
+  lastActivity          DateTime?
+  followerCount         Int?
+  postsCount            Int?
+  suspiciousActivities  Int                     @default(0)
+  reportedBy            String
+  addedDate             DateTime                @default(now())
+  investigatorId        String?
+  notes                 String?                 @db.Text
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  // Relations
+  case                  CyberCase               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  monitoringActivities  SocialMediaActivity[]
+
+  @@map("social_media_profiles")
+}
+
+model SocialMediaActivity {
+  id          String             @id @default(cuid())
+  profileId   String
+  activityType String            // post, message, profile_update, etc.
+  content     String?            @db.Text
+  timestamp   DateTime
+  isScreenshot Boolean           @default(false)
+  filePath    String?
+  isSuspicious Boolean           @default(false)
+  notes       String?            @db.Text
+  createdAt   DateTime           @default(now())
+
+  // Relations
+  profile     SocialMediaProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("social_media_activities")
+}
+
+// Legal Requests Management
+model LegalRequest {
+  id                  String              @id @default(cuid())
+  requestId           String              @unique // LR-2024-001
+  caseId              String
+  platform            String
+  requestType         LegalRequestType
+  status              LegalRequestStatus  @default(SUBMITTED)
+  priority            Priority
+  submittedDate       DateTime
+  expectedResponse    DateTime
+  actualResponse      DateTime?
+  requestedById       String
+  targetAccount       String
+  dataRequested       String[]
+  legalBasis          String              @db.Text
+  urgencyJustification String?            @db.Text
+  documentsSent       Int                 @default(0)
+  documentsReceived   Int                 @default(0)
+  platformContact     String
+  notes               String?             @db.Text
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  case                CyberCase           @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  requestedBy         User                @relation(fields: [requestedById], references: [id])
+
+  @@map("legal_requests")
+}
+
+// Offense Categories
+model OffenseCategory {
+  id                      String   @id @default(cuid())
+  name                    String   @unique
+  category                String
+  severity                String
+  description             String   @db.Text
+  commonSigns             String[] // JSON array
+  redFlags                String[] // JSON array
+  investigationTips       String[] // JSON array
+  preventionAdvice        String[] // JSON array
+  commonPlatforms         String[] // JSON array
+  targetDemographics      String[] // JSON array
+  investigationComplexity String
+  legalFramework          String?  @db.Text
+  isActive                Boolean  @default(true)
+  casesThisYear           Int      @default(0)
+  trend                   String   @default("stable") // up, down, stable
+  averageLoss             String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("offense_categories")
+}
+
+// Knowledge Base
+model KnowledgeBaseArticle {
+  id          String      @id @default(cuid())
+  title       String
+  content     String      @db.Text
+  category    String
+  tags        String[]
+  isPublic    Boolean     @default(true)
+  authorId    String?
+  viewCount   Int         @default(0)
+  lastViewed  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("knowledge_base_articles")
+}
+
+// Notifications
+model Notification {
+  id         String             @id @default(cuid())
+  userId     String
+  caseId     String?
+  type       NotificationType
+  title      String
+  message    String             @db.Text
+  isRead     Boolean            @default(false)
+  readAt     DateTime?
+  priority   Priority           @default(MEDIUM)
+  actionUrl  String?
+  createdAt  DateTime           @default(now())
+
+  // Relations
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case      CyberCase?       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Audit Logging
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  resource  String   // cases, users, evidence, etc.
+  resourceId String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Advanced Search Models
+model SavedSearch {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  filters     String   @db.Text // JSON stringified filters
+  userId      String
+  isPublic    Boolean  @default(false)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("saved_searches")
+}
+
+model SearchAnalytics {
+  id            String   @id @default(cuid())
+  searchQuery   String
+  filters       String   @db.Text // JSON stringified filters
+  resultsCount  Int
+  executionTime Int      // in milliseconds
+  userId        String
+  timestamp     DateTime @default(now())
+  resultClicks  String[] // Array of clicked result IDs
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("search_analytics")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  UNIT_COMMANDER
+  SENIOR_INVESTIGATOR
+  INVESTIGATOR
+  ANALYST
+  OFFICER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CaseStatus {
+  OPEN
+  IN_PROGRESS
+  UNDER_INVESTIGATION
+  PENDING_LEGAL
+  SUSPENDED
+  CLOSED
+  ARCHIVED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNDISCLOSED
+}
+
+enum EvidenceType {
+  SCREENSHOT
+  DOCUMENT
+  VIDEO
+  AUDIO
+  EMAIL
+  CHAT_LOG
+  FINANCIAL_RECORD
+  DEVICE_DATA
+  NETWORK_LOG
+  OTHER
+}
+
+enum InvestigationStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  TRANSFERRED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SocialMediaStatus {
+  ACTIVE_MONITORING
+  UNDER_REVIEW
+  ESCALATED
+  INVESTIGATION_COMPLETE
+  SUSPENDED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum LegalRequestType {
+  USER_DATA
+  CONTENT_PRESERVATION
+  EMERGENCY_DISCLOSURE
+  ACCOUNT_TAKEDOWN
+  CONTENT_TAKEDOWN
+}
+
+enum LegalRequestStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_RESPONSE
+  IN_PROGRESS
+  COMPLETED
+  RESPONSE_OVERDUE
+  REJECTED
+}
+
+enum NotificationType {
+  CASE_ASSIGNED
+  CASE_UPDATE
+  EVIDENCE_UPLOADED
+  LEGAL_REQUEST_RESPONSE
+  URGENT_ALERT
+  SYSTEM_NOTIFICATION
+}
+
+enum ArticleType {
+  SCAM_PROFILE
+  ADVISORY
+  BEST_PRACTICE
+  TRAINING_MATERIAL
+  LEGAL_GUIDE
+}
