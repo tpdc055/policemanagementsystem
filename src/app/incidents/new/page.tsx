@@ -295,7 +295,7 @@ export default function NewIncidentPage() {
       // Create incident in database
       const incidentData = {
         ...formData,
-        reported_by: user.badgeNumber,
+        reported_by: user.id,
         date_reported: new Date().toISOString(),
         status: 'reported' as const,
         photos: capturedPhotos.map(photo => photo.url),

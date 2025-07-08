@@ -29,12 +29,7 @@ import {
   CheckCircle,
   Plus,
   X,
-  Info,
-  Fingerprint,
-  UserX,
-  RotateCcw,
-  Download,
-  Eye
+  Info
 } from "lucide-react"
 import type { User as UserType } from "@/types/user"
 
@@ -108,74 +103,13 @@ const CHARGE_OPTIONS = [
   "Trespassing"
 ]
 
-interface BailInfo {
-  eligible: boolean
-  amount: string
-  type: string
-  guarantor: string
-  guarantorPhone: string
-  guarantorAddress: string
-}
-
-interface BiometricFingerprints {
-  right_thumb: string | null
-  right_index: string | null
-  right_middle: string | null
-  right_ring: string | null
-  right_little: string | null
-  left_thumb: string | null
-  left_index: string | null
-  left_middle: string | null
-  left_ring: string | null
-  left_little: string | null
-}
-
-interface BiometricsData {
-  mugshot_front: string | null
-  mugshot_side: string | null
-  fingerprints: BiometricFingerprints
-}
-
-interface EvidenceData {
-  documents: string[]
-  photos: string[]
-  videos: string[]
-  physicalEvidence: string[]
-}
-
-interface EntryData {
-  personName: string
-  personAge: string
-  personGender: string
-  personNationality: string
-  personAddress: string
-  personPhone: string
-  personIdentification: string
-  biometrics: BiometricsData
-  incidentType: string
-  location: string
-  province: string
-  dateTime: string
-  description: string
-  charges: string[]
-  inCustody: boolean
-  cellNumber: string
-  arrestTime: string
-  bail: BailInfo
-  evidence: EvidenceData
-  personalProperty: string[]
-  priority: string
-  officerNotes: string
-  specialInstructions: string
-}
-
 export default function NewLogEntryPage() {
   const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
 
-  const [entryData, setEntryData] = useState<EntryData>({
+  const [entryData, setEntryData] = useState({
     // Person Information
     personName: "",
     personAge: "",
@@ -185,31 +119,13 @@ export default function NewLogEntryPage() {
     personPhone: "",
     personIdentification: "",
 
-    // Biometric Information
-    biometrics: {
-      mugshot_front: null,
-      mugshot_side: null,
-      fingerprints: {
-        right_thumb: null,
-        right_index: null,
-        right_middle: null,
-        right_ring: null,
-        right_little: null,
-        left_thumb: null,
-        left_index: null,
-        left_middle: null,
-        left_ring: null,
-        left_little: null,
-      }
-    },
-
     // Incident Information
     incidentType: "",
     location: "",
     province: "",
     dateTime: "",
     description: "",
-    charges: [],
+    charges: [] as string[],
 
     // Custody Information
     inCustody: false,
@@ -226,14 +142,14 @@ export default function NewLogEntryPage() {
 
     // Evidence Information
     evidence: {
-      documents: [],
-      photos: [],
-      videos: [],
-      physicalEvidence: []
+      documents: [] as string[],
+      photos: [] as string[],
+      videos: [] as string[],
+      physicalEvidence: [] as string[]
     },
 
     // Personal Property
-    personalProperty: [],
+    personalProperty: [] as string[],
 
     // Priority and Notes
     priority: "medium",
@@ -258,15 +174,15 @@ export default function NewLogEntryPage() {
     }))
   }, [router])
 
-  const updateField = (field: keyof EntryData, value: unknown) => {
+  const updateField = (field: string, value: unknown) => {
     setEntryData(prev => ({ ...prev, [field]: value }))
   }
 
-  const updateNestedField = (parent: keyof EntryData, field: string, value: unknown) => {
+  const updateNestedField = (parent: string, field: string, value: unknown) => {
     setEntryData(prev => ({
       ...prev,
       [parent]: {
-        ...(prev[parent] as unknown as Record<string, unknown>),
+        ...prev[parent as keyof typeof prev],
         [field]: value
       }
     }))
@@ -288,19 +204,19 @@ export default function NewLogEntryPage() {
     }))
   }
 
-  const addItem = (array: keyof EntryData, item: string) => {
+  const addItem = (array: string, item: string) => {
     if (item.trim()) {
       setEntryData(prev => ({
         ...prev,
-        [array]: [...(prev[array] as string[]), item.trim()]
+        [array]: [...(prev[array as keyof typeof prev] as string[]), item.trim()]
       }))
     }
   }
 
-  const removeItem = (array: keyof EntryData, index: number) => {
+  const removeItem = (array: string, index: number) => {
     setEntryData(prev => ({
       ...prev,
-      [array]: (prev[array] as string[]).filter((_, i) => i !== index)
+      [array]: (prev[array as keyof typeof prev] as string[]).filter((_, i) => i !== index)
     }))
   }
 
@@ -319,15 +235,8 @@ export default function NewLogEntryPage() {
         ...entryData,
         incidentNumber,
         reportingOfficer: user?.name,
-        reportingOfficerBadge: user?.badgeNumber,
         status: "pending",
-        createdAt: new Date().toISOString(),
-        biometricDataCollected: {
-          photosComplete: entryData.biometrics.mugshot_front && entryData.biometrics.mugshot_side,
-          fingerprintsComplete: Object.values(entryData.biometrics.fingerprints).filter(Boolean).length === 10,
-          photosCount: (entryData.biometrics.mugshot_front ? 1 : 0) + (entryData.biometrics.mugshot_side ? 1 : 0),
-          fingerprintsCount: Object.values(entryData.biometrics.fingerprints).filter(Boolean).length
-        }
+        createdAt: new Date().toISOString()
       })
 
       setSuccess(true)
@@ -396,9 +305,8 @@ export default function NewLogEntryPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="person" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="person">Person Details</TabsTrigger>
-              <TabsTrigger value="biometrics">Biometrics</TabsTrigger>
               <TabsTrigger value="incident">Incident Info</TabsTrigger>
               <TabsTrigger value="custody">Custody Status</TabsTrigger>
               <TabsTrigger value="evidence">Evidence</TabsTrigger>
@@ -442,7 +350,7 @@ export default function NewLogEntryPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="personGender">Gender *</Label>
-                      <Select value={entryData.personGender} onValueChange={(value: string) => updateField("personGender", value)}>
+                      <Select value={entryData.personGender} onValueChange={(value) => updateField("personGender", value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
@@ -500,285 +408,6 @@ export default function NewLogEntryPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="biometrics" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Fingerprint className="w-5 h-5" />
-                    Biometric Data Collection
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Capture photographs and fingerprints for identification and record keeping
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Photo Capture Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold border-b pb-2">Photographs (Mugshots)</h3>
-
-                    <div className="grid gap-6 md:grid-cols-2">
-                      {/* Front Photo */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium flex items-center gap-2">
-                          <UserX className="w-4 h-4" />
-                          Front View Photo
-                        </h4>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-                          {entryData.biometrics.mugshot_front ? (
-                            <div className="space-y-3">
-                              <div className="w-32 h-40 mx-auto bg-blue-100 rounded border flex items-center justify-center">
-                                <Camera className="w-8 h-8 text-blue-500" />
-                                <span className="sr-only">Front photo captured</span>
-                              </div>
-                              <div className="flex gap-2 justify-center">
-                                <Button type="button" variant="outline" size="sm">
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  View
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => updateNestedField("biometrics", "mugshot_front", null)}
-                                >
-                                  <RotateCcw className="w-4 h-4 mr-1" />
-                                  Retake
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              <Camera className="mx-auto h-12 w-12 text-gray-400" />
-                              <div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => updateNestedField("biometrics", "mugshot_front", "captured")}
-                                >
-                                  <Camera className="w-4 h-4 mr-2" />
-                                  Capture Front Photo
-                                </Button>
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                Position subject facing camera directly
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Side Profile Photo */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium flex items-center gap-2">
-                          <UserX className="w-4 h-4" />
-                          Side Profile Photo
-                        </h4>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-                          {entryData.biometrics.mugshot_side ? (
-                            <div className="space-y-3">
-                              <div className="w-32 h-40 mx-auto bg-blue-100 rounded border flex items-center justify-center">
-                                <Camera className="w-8 h-8 text-blue-500" />
-                                <span className="sr-only">Side photo captured</span>
-                              </div>
-                              <div className="flex gap-2 justify-center">
-                                <Button type="button" variant="outline" size="sm">
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  View
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => updateNestedField("biometrics", "mugshot_side", null)}
-                                >
-                                  <RotateCcw className="w-4 h-4 mr-1" />
-                                  Retake
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              <Camera className="mx-auto h-12 w-12 text-gray-400" />
-                              <div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => updateNestedField("biometrics", "mugshot_side", "captured")}
-                                >
-                                  <Camera className="w-4 h-4 mr-2" />
-                                  Capture Profile Photo
-                                </Button>
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                Position subject in side profile (90° turn)
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Fingerprint Capture Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold border-b pb-2">Fingerprint Collection</h3>
-                    <p className="text-sm text-gray-600">
-                      Collect all 10 fingerprints for complete identification record
-                    </p>
-
-                    {/* Right Hand */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-blue-700">Right Hand</h4>
-                      <div className="grid grid-cols-5 gap-3">
-                        {(['right_thumb', 'right_index', 'right_middle', 'right_ring', 'right_little'] as const).map((finger, index) => {
-                          const fingerNames = ['Thumb', 'Index', 'Middle', 'Ring', 'Little']
-                          const isCapturered = entryData.biometrics.fingerprints[finger]
-
-                          return (
-                            <div key={finger} className="text-center space-y-2">
-                              <div className={`w-16 h-20 mx-auto rounded-lg border-2 border-dashed flex items-center justify-center ${
-                                isCapturered ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-300'
-                              }`}>
-                                <Fingerprint className={`w-6 h-6 ${
-                                  isCapturered ? 'text-green-600' : 'text-gray-400'
-                                }`} />
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium">{fingerNames[index]}</p>
-                                {isCapturered ? (
-                                  <div className="space-y-1">
-                                    <Badge variant="secondary" className="text-xs">Captured</Badge>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-xs h-auto p-1"
-                                      onClick={() => {
-                                        const newFingerprints = { ...entryData.biometrics.fingerprints }
-                                        newFingerprints[finger] = null
-                                        updateNestedField("biometrics", "fingerprints", newFingerprints)
-                                      }}
-                                    >
-                                      Retake
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-xs h-auto p-1"
-                                    onClick={() => {
-                                      const newFingerprints = { ...entryData.biometrics.fingerprints }
-                                      newFingerprints[finger] = "captured"
-                                      updateNestedField("biometrics", "fingerprints", newFingerprints)
-                                    }}
-                                  >
-                                    Scan
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Left Hand */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-blue-700">Left Hand</h4>
-                      <div className="grid grid-cols-5 gap-3">
-                        {(['left_thumb', 'left_index', 'left_middle', 'left_ring', 'left_little'] as const).map((finger, index) => {
-                          const fingerNames = ['Thumb', 'Index', 'Middle', 'Ring', 'Little']
-                          const isCapturered = entryData.biometrics.fingerprints[finger]
-
-                          return (
-                            <div key={finger} className="text-center space-y-2">
-                              <div className={`w-16 h-20 mx-auto rounded-lg border-2 border-dashed flex items-center justify-center ${
-                                isCapturered ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-300'
-                              }`}>
-                                <Fingerprint className={`w-6 h-6 ${
-                                  isCapturered ? 'text-green-600' : 'text-gray-400'
-                                }`} />
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium">{fingerNames[index]}</p>
-                                {isCapturered ? (
-                                  <div className="space-y-1">
-                                    <Badge variant="secondary" className="text-xs">Captured</Badge>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-xs h-auto p-1"
-                                      onClick={() => {
-                                        const newFingerprints = { ...entryData.biometrics.fingerprints }
-                                        newFingerprints[finger] = null
-                                        updateNestedField("biometrics", "fingerprints", newFingerprints)
-                                      }}
-                                    >
-                                      Retake
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-xs h-auto p-1"
-                                    onClick={() => {
-                                      const newFingerprints = { ...entryData.biometrics.fingerprints }
-                                      newFingerprints[finger] = "captured"
-                                      updateNestedField("biometrics", "fingerprints", newFingerprints)
-                                    }}
-                                  >
-                                    Scan
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Biometric Status Summary */}
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-blue-900">Biometric Collection Status</h4>
-                          <p className="text-sm text-blue-700">
-                            Photos: {(entryData.biometrics.mugshot_front ? 1 : 0) + (entryData.biometrics.mugshot_side ? 1 : 0)}/2 captured
-                            <span className="ml-4">
-                              Fingerprints: {Object.values(entryData.biometrics.fingerprints).filter(Boolean).length}/10 captured
-                            </span>
-                          </p>
-                        </div>
-                        {entryData.biometrics.mugshot_front && entryData.biometrics.mugshot_side &&
-                         Object.values(entryData.biometrics.fingerprints).filter(Boolean).length === 10 && (
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Complete
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <Alert>
-                      <Info className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Note:</strong> Biometric data collection is optional but highly recommended for
-                        proper identification and criminal record management. All biometric data is securely stored
-                        and only accessible to authorized personnel.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             <TabsContent value="incident" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -791,7 +420,7 @@ export default function NewLogEntryPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="incidentType">Incident Type *</Label>
-                      <Select value={entryData.incidentType} onValueChange={(value: string) => updateField("incidentType", value)}>
+                      <Select value={entryData.incidentType} onValueChange={(value) => updateField("incidentType", value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select incident type" />
                         </SelectTrigger>
@@ -805,7 +434,7 @@ export default function NewLogEntryPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="priority">Priority Level</Label>
-                      <Select value={entryData.priority} onValueChange={(value: string) => updateField("priority", value)}>
+                      <Select value={entryData.priority} onValueChange={(value) => updateField("priority", value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
@@ -833,7 +462,7 @@ export default function NewLogEntryPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="province">Province *</Label>
-                      <Select value={entryData.province} onValueChange={(value: string) => updateField("province", value)}>
+                      <Select value={entryData.province} onValueChange={(value) => updateField("province", value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select province" />
                         </SelectTrigger>
@@ -981,7 +610,7 @@ export default function NewLogEntryPage() {
 
                               <div className="space-y-2">
                                 <Label htmlFor="bailType">Bail Type</Label>
-                                <Select value={entryData.bail.type} onValueChange={(value: string) => updateNestedField("bail", "type", value)}>
+                                <Select value={entryData.bail.type} onValueChange={(value) => updateNestedField("bail", "type", value)}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select type" />
                                   </SelectTrigger>
@@ -1091,12 +720,9 @@ export default function NewLogEntryPage() {
                           type="button"
                           variant="outline"
                           onClick={(e) => {
-                            const target = e.target as HTMLElement
-                            const input = target.closest('div')?.querySelector('input') as HTMLInputElement
-                            if (input) {
-                              addItem('personalProperty', input.value)
-                              input.value = ''
-                            }
+                            const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
+                            addItem('personalProperty', input.value)
+                            input.value = ''
                           }}
                         >
                           <Plus className="w-4 h-4" />
@@ -1168,8 +794,6 @@ export default function NewLogEntryPage() {
                       <div><strong>Date/Time:</strong> {entryData.dateTime ? new Date(entryData.dateTime).toLocaleString() : "Not set"}</div>
                       <div><strong>Charges:</strong> {entryData.charges.length} charges</div>
                       <div><strong>Custody:</strong> {entryData.inCustody ? "In custody" : "Not in custody"}</div>
-                      <div><strong>Photos:</strong> {(entryData.biometrics.mugshot_front ? 1 : 0) + (entryData.biometrics.mugshot_side ? 1 : 0)}/2 captured</div>
-                      <div><strong>Fingerprints:</strong> {Object.values(entryData.biometrics.fingerprints).filter(Boolean).length}/10 captured</div>
                     </div>
                   </div>
 

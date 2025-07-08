@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CybercrimeStatsSection } from "@/components/dashboard/cybercrime-stats"
 import {
   Activity,
   AlertTriangle,
@@ -24,7 +23,7 @@ import {
   BarChart3,
   Plus,
   Eye,
-  User as UserIcon,
+  User,
   Calendar,
   Target
 } from "lucide-react"
@@ -175,9 +174,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Cybercrime Unit Integration */}
-        <CybercrimeStatsSection />
-
         {/* Recent Activity & Alerts */}
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
@@ -213,7 +209,7 @@ export default function DashboardPage() {
 
                 <div className="flex items-start gap-3 p-3 border rounded-lg">
                   <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                    <UserIcon className="w-4 h-4 text-purple-600" />
+                    <User className="w-4 h-4 text-purple-600" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">New Criminal Profile Added</p>

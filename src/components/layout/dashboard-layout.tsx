@@ -87,14 +87,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
           <Shield className="w-8 h-8 text-white" />
         </div>
         <div>
-          <h1 className="font-bold text-lg">Royal PNG</h1>
-          <h2 className="font-bold text-lg">Constabulary</h2>
-          <p className="text-sm text-gray-600">Police Management System</p>
+          <h1 className="font-bold text-lg">PNG Police</h1>
+          <p className="text-sm text-gray-600">Management System</p>
         </div>
       </div>
 
-      {/* Navigation - with flex-1 to take available space */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
           return (
@@ -115,8 +114,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
         })}
       </nav>
 
-      {/* User Info Section - Fixed at bottom */}
-      <div className="p-4 border-t bg-gray-50">
+      {/* User Info */}
+      <div className="p-4 border-t">
         <div className="flex items-center gap-3 mb-3">
           <Avatar className="w-8 h-8">
             <AvatarFallback className="bg-blue-100 text-blue-700">
@@ -128,17 +127,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
             <p className="text-xs text-gray-600">Badge #{user.badgeNumber}</p>
           </div>
         </div>
-        <Badge variant="outline" className="text-xs mb-3 w-full justify-center">
+        <Badge variant="outline" className="text-xs mb-3">
           {user.role}
         </Badge>
         <Button
           variant="outline"
           size="sm"
           onClick={handleLogout}
-          className="w-full bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+          className="w-full"
         >
           <LogOut className="w-4 h-4 mr-2" />
-          Sign Out
+          Logout
         </Button>
       </div>
     </div>
@@ -179,14 +178,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
                 {user.name?.split(" ").map(n => n[0]).join("") || "U"}
               </AvatarFallback>
             </Avatar>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 
