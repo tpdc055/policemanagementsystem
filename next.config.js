@@ -7,9 +7,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   trailingSlash: false,
-  experimental: {
-    appDir: true,
-  },
+  // ... existing code ... <rest of config settings>
   images: {
     unoptimized: true,
     domains: [
@@ -55,5 +53,4 @@ const nextConfig = {
     ]
   },
 }
-
 module.exports = nextConfig

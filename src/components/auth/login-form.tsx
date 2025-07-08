@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -47,7 +46,6 @@ export function LoginForm() {
           name: `Officer ${credentials.badgeNumber}`,
           loginTime: new Date().toISOString()
         }))
-
         router.push("/dashboard")
       } else {
         setError("Please fill in all fields")

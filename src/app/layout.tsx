@@ -28,6 +28,8 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#1e40af" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body suppressHydrationWarning className="antialiased">
         <ClientBody>{children}</ClientBody>
