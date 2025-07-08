@@ -1,11 +1,4 @@
-"use client"
-import { useState, useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+// ... existing code ... <import statements>
 import {
   Home,
   Users,
@@ -26,13 +19,10 @@ import {
   BookOpen,
   Lock,
   Scale,
-  History
+  History,
+  ExternalLink
 } from "lucide-react"
-import type { User } from "@/types/user"
-
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
+// ... existing code ... <interface and navigation array setup>
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -46,38 +36,16 @@ const navigation = [
   { name: "Evidence", href: "/evidence", icon: Database },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Criminals", href: "/criminals", icon: Shield },
+  {
+    name: "Cybercrime Unit",
+    href: "https://cybercrime-3h6o.vercel.app",
+    icon: Shield,
+    external: true,
+    className: "text-red-600 hover:text-red-700 hover:bg-red-50"
+  },
 ]
 
-export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element {
-  const [user, setUser] = useState<User | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const router = useRouter()
-  const pathname = usePathname()
-
-  useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (!userData) {
-      router.push("/")
-      return
-    }
-    setUser(JSON.parse(userData))
-  }, [router])
-
-  const handleLogout = () => {
-    localStorage.removeItem("user")
-    router.push("/")
-  }
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Clock className="mx-auto h-8 w-8 text-gray-400 animate-spin" />
-          <p className="mt-2 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
+// ... existing code ... <component definition and other parts before the Sidebar component>
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={`flex flex-col h-full ${mobile ? "p-4" : ""}`}>
@@ -95,7 +63,27 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
+          const isActive = !item.external && (pathname === item.href || pathname?.startsWith(`${item.href}/`))
+
+          if (item.external) {
+            return (
+              <a
+                key={item.name}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  item.className || "text-red-600 hover:text-red-700 hover:bg-red-50"
+                }`}
+                onClick={() => mobile && setSidebarOpen(false)}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.name}
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </a>
+            )
+          }
+
           return (
             <Link
               key={item.name}
@@ -114,78 +102,4 @@ export function DashboardLayout({ children }: DashboardLayoutProps): JSX.Element
         })}
       </nav>
 
-      {/* User Info */}
-      <div className="p-4 border-t">
-        <div className="flex items-center gap-3 mb-3">
-          <Avatar className="w-8 h-8">
-            <AvatarFallback className="bg-blue-100 text-blue-700">
-              {user.name?.split(" ").map(n => n[0]).join("") || "U"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user.name}</p>
-            <p className="text-xs text-gray-600">Badge #{user.badgeNumber}</p>
-          </div>
-        </div>
-        <Badge variant="outline" className="text-xs mb-3">
-          {user.role}
-        </Badge>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLogout}
-          className="w-full"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button>
-      </div>
-    </div>
-  )
-
-  return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-white border-r">
-        <Sidebar />
-      </div>
-
-      {/* Mobile Sidebar */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-64">
-          <Sidebar mobile />
-        </SheetContent>
-      </Sheet>
-
-      {/* Main Content */}
-      <div className="flex-1 lg:pl-64">
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b px-4 py-3 flex items-center justify-between">
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Menu className="w-4 h-4" />
-              </Button>
-            </SheetTrigger>
-          </Sheet>
-
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {user.role}
-            </Badge>
-            <Avatar className="w-6 h-6">
-              <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
-                {user.name?.split(" ").map(n => n[0]).join("") || "U"}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-
-        {/* Page Content */}
-        <main className="flex-1 p-6 overflow-auto">
-          {children}
-        </main>
-      </div>
-    </div>
-  )
-}
+      // ... existing code ... <rest of sidebar content and component>
